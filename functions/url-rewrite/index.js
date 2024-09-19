@@ -9,7 +9,7 @@ function handler(event) {
     if (request.querystring) {
         Object.keys(request.querystring).forEach(operation => {
             switch (operation.toLowerCase()) {
-                case 'format': 
+                case 'f': 
                     var SUPPORTED_FORMATS = ['auto', 'jpeg', 'webp', 'avif', 'png', 'svg', 'gif'];
                     if (request.querystring[operation]['value'] && SUPPORTED_FORMATS.includes(request.querystring[operation]['value'].toLowerCase())) {
                         var format = request.querystring[operation]['value'].toLowerCase(); // normalize to lowercase
@@ -26,25 +26,26 @@ function handler(event) {
                         normalizedOperations['format'] = format;
                     }
                     break;
-                case 'width':
+                case 'w':
                     if (request.querystring[operation]['value']) {
-                        var width = parseInt(request.querystring[operation]['value']);
+                        var width = parseInt(request.querystring[operation]['value']) || 0;
                         if (!isNaN(width) && (width > 0)) {
+                            width = findClosestWidth(width);
                             // you can protect the Lambda function by setting a max value, e.g. if (width > 4000) width = 4000;
                             normalizedOperations['width'] = width.toString();
                         }
                     }
                     break;
-                case 'height':
+                case 'h':
                     if (request.querystring[operation]['value']) {
-                        var height = parseInt(request.querystring[operation]['value']);
+                        var height = parseInt(request.querystring[operation]['value']) || 0;
                         if (!isNaN(height) && (height > 0)) {
                             // you can protect the Lambda function by setting a max value, e.g. if (height > 4000) height = 4000;
                             normalizedOperations['height'] = height.toString();
                         }
                     }
                     break;
-                case 'quality':
+                case 'q':
                     if (request.querystring[operation]['value']) {
                         var quality = parseInt(request.querystring[operation]['value']);
                         if (!isNaN(quality) && (quality > 0)) {
@@ -56,6 +57,7 @@ function handler(event) {
                 default: break;
             }
         });
+        if(!normalizedOperations['width']) normalizedOperations['width'] = '400'; // default width
         //rewrite the path to normalized version if valid operations are found
         if (Object.keys(normalizedOperations).length > 0) {
             // put them in order
@@ -63,18 +65,24 @@ function handler(event) {
             if (normalizedOperations.format) normalizedOperationsArray.push('format='+normalizedOperations.format);
             if (normalizedOperations.quality) normalizedOperationsArray.push('quality='+normalizedOperations.quality);
             if (normalizedOperations.width) normalizedOperationsArray.push('width='+normalizedOperations.width);
-            if (normalizedOperations.height) normalizedOperationsArray.push('height='+normalizedOperations.height);
+            // if (normalizedOperations.height) normalizedOperationsArray.push('height='+normalizedOperations.height);
             request.uri = originalImagePath + '/' + normalizedOperationsArray.join(',');     
         } else {
             // If no valid operation is found, flag the request with /original path suffix
-            request.uri = originalImagePath + '/original';     
+            request.uri = originalImagePath + '/width=400';  
         }
 
     } else {
         // If no query strings are found, flag the request with /original path suffix
-        request.uri = originalImagePath + '/original'; 
+        request.uri = originalImagePath + '/width=400';
     }
     // remove query strings
     request['querystring'] = {};
     return request;
+}
+
+function findClosestWidth(requestedWidth) {
+    return [400, 767, 800, 1920].reduce((prev, curr) => {
+        return Math.abs(curr - requestedWidth) < Math.abs(prev - requestedWidth) ? curr : prev;
+    });
 }
