@@ -58,6 +58,7 @@ function handler(event) {
             }
         });
         if(!normalizedOperations['width']) normalizedOperations['width'] = '400'; // default width
+        if(!normalizedOperations['format']) normalizedOperations['format'] = 'jpeg'; // default format
         //rewrite the path to normalized version if valid operations are found
         if (Object.keys(normalizedOperations).length > 0) {
             // put them in order
@@ -69,12 +70,12 @@ function handler(event) {
             request.uri = originalImagePath + '/' + normalizedOperationsArray.join(',');     
         } else {
             // If no valid operation is found, flag the request with /original path suffix
-            request.uri = originalImagePath + '/width=400';  
+            request.uri = originalImagePath + '/format=jpeg,width=400';  
         }
 
     } else {
         // If no query strings are found, flag the request with /original path suffix
-        request.uri = originalImagePath + '/width=400';
+        request.uri = originalImagePath + '/format=jpeg,width=400';
     }
     // remove query strings
     request['querystring'] = {};
@@ -82,7 +83,7 @@ function handler(event) {
 }
 
 function findClosestWidth(requestedWidth) {
-    return [400, 767, 800, 1920].reduce((prev, curr) => {
+    return [120, 400, 640, 800, 1024, 1280, 1600, 1920].reduce((prev, curr) => {
         return Math.abs(curr - requestedWidth) < Math.abs(prev - requestedWidth) ? curr : prev;
     });
 }
