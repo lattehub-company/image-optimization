@@ -63,8 +63,14 @@ function handler(event) {
       }
     });
     if (!normalizedOperations["width"]) normalizedOperations["width"] = "400"; // default width
-    if (!normalizedOperations["format"])
+    if (!normalizedOperations["format"]) {
       normalizedOperations["format"] = "jpeg"; // default format
+      if (request.headers["accept"]) {
+        if (request.headers["accept"].value.includes("webp")) {
+          normalizedOperations["format"] = "webp";
+        }
+      }
+    }
     if (!normalizedOperations["format"]) normalizedOperations["quality"] = "80"; // default quality
     //rewrite the path to normalized version if valid operations are found
     if (Object.keys(normalizedOperations).length > 0) {
@@ -83,11 +89,11 @@ function handler(event) {
         originalImagePath + "/" + normalizedOperationsArray.join(",");
     } else {
       // If no valid operation is found, flag the request with /original path suffix
-      request.uri = originalImagePath + "/format=jpeg,width=400";
+      request.uri = originalImagePath + "/format=webp,width=400";
     }
   } else {
     // If no query strings are found, flag the request with /original path suffix
-    request.uri = originalImagePath + "/format=jpeg,width=400";
+    request.uri = originalImagePath + "/format=webp,width=400";
   }
   // remove query strings
   request["querystring"] = {};
