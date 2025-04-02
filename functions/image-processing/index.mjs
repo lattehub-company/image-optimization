@@ -47,22 +47,36 @@ export const handler = async (event) => {
     originalImageBody =
       await getOriginalImageCommandOutput.Body.transformToByteArray();
     contentType = getOriginalImageCommandOutput.ContentType;
-    console.log(
-      `Image Path ${originalImagePath}. Got content type ${contentType}`
-    );
     if (contentType === "image/gif") {
-      return {
-        statusCode: 200,
-        body: Buffer.from(originalImageBody).toString("base64"),
-        isBase64Encoded: true,
-        headers: {
-          "Content-Type": contentType,
-          // "Cache-Control": "private,no-store",
-          "Cache-Control": TRANSFORMED_IMAGE_CACHE_TTL,
-          "Server-Timing":
-            "img-download;dur=" + parseInt(performance.now() - startTime),
-        },
-      };
+      if (Buffer.byteLength(originalImageBody) < MAX_IMAGE_SIZE) {
+        return {
+          statusCode: 200,
+          body: Buffer.from(originalImageBody).toString("base64"),
+          isBase64Encoded: true,
+          headers: {
+            "Content-Type": contentType,
+            // "Cache-Control": "private,no-store",
+            "Cache-Control": TRANSFORMED_IMAGE_CACHE_TTL,
+            "Server-Timing":
+              "img-download;dur=" + parseInt(performance.now() - startTime),
+          },
+        };
+      } else {
+        // console.log(
+        //   `GIF image is too big, redirecting to S3: Request context ${JSON.stringify(
+        //     event.requestContext
+        //   )}`
+        // );
+        return {
+          statusCode: 302,
+          headers: {
+            Location:
+              "https://minio.cacheimg.com/cacheimg/" + originalImagePath,
+            "Cache-Control": "private,no-store",
+            "Server-Timing": timingLog,
+          },
+        };
+      }
     }
   } catch (error) {
     return sendError(500, "Error downloading original image", error);
